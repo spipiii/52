@@ -1,0 +1,43 @@
+Настройка на Ubuntu VPS
+
+Установить Python и pip
+
+sudo apt update
+sudo apt install python3 python3-pip -y
+
+Создать папку и скачать файлы
+
+mkdir arb_bot
+cd arb_bot
+# скопировать все файлы bot.py, scanner.py и т.д. сюда
+
+Установить зависимости
+
+pip3 install ccxt python-telegram-bot aiohttp
+
+Запуск бота
+
+python3 bot.py
+
+Чтобы работать 24/7, лучше использовать screen:
+
+sudo apt install screen -y
+screen -S arb
+python3 bot.py
+# чтобы выйти из screen: Ctrl+A, D
+# вернуться к сессии: screen -r arb
+
+
+Как использовать requirements.txt на Ubuntu
+
+Перейти в папку проекта:
+
+cd arb_bot
+
+Установить зависимости:
+
+pip3 install -r requirements.txt
+
+После этого все библиотеки будут установлены, и бот можно запускать командой:
+
+python3 bot.py
