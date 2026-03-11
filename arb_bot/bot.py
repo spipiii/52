@@ -1,89 +1,135 @@
-import json
-import asyncio
+import os
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes
+)
+
+from keyboards import main_menu
 from scanner import scan
+from utils import load_settings, save_settings
 
-SETTINGS_FILE = "settings.json"
+TOKEN = os.getenv("TG_TOKEN")
 
-def load_settings():
-    with open(SETTINGS_FILE) as f:
-        return json.load(f)
-
-def save_settings(data):
-    with open(SETTINGS_FILE,"w") as f:
-        json.dump(data,f,indent=4)
-
-TELEGRAM_TOKEN = "8688404030:AAHeM7LBRolyLFQvVWBk7DWE44LKT8KA4AA"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = """
-Арбитражный бот
 
-Команды:
-/scan - сканировать биржи
-/settings - показать текущие настройки
-/setspread 1.5 - минимальный спред %
-/setamount 1000 - сумма сделки
-/setexchanges binance kucoin bybit okx - выбрать биржи
-"""
-    await update.message.reply_text(msg)
+    await update.message.reply_text(
+        "Arbitrage bot started",
+        reply_markup=main_menu()
+    )
+
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     s = load_settings()
+
     text = f"""
-Текущие настройки:
-Биржи: {s['exchanges']}
-Мин спред: {s['min_spread']}
-Сумма сделки: {s['trade_amount_usdt']}
+Spread: {s['min_spread']}%
+Trade amount: {s['trade_amount_usdt']} USDT
+Exchanges: {', '.join(s['exchanges'])}
 """
+
     await update.message.reply_text(text)
 
+
 async def setspread(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not context.args:
+        await update.message.reply_text("Usage: /setspread 1.5")
+        return
+
     s = load_settings()
     s["min_spread"] = float(context.args[0])
     save_settings(s)
-    await update.message.reply_text(f"Мин спред обновлён: {s['min_spread']}%")
+
+    await update.message.reply_text("Spread updated")
+
 
 async def setamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not context.args:
+        await update.message.reply_text("Usage: /setamount 1000")
+        return
+
     s = load_settings()
     s["trade_amount_usdt"] = float(context.args[0])
     save_settings(s)
-    await update.message.reply_text(f"Сумма сделки обновлена: {s['trade_amount_usdt']} USDT")
 
-async def setexchanges(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    s = load_settings()
-    s["exchanges"] = context.args
-    save_settings(s)
-    await update.message.reply_text(f"Биржи обновлены: {', '.join(s['exchanges'])}")
+    await update.message.reply_text("Amount updated")
 
-async def scan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Сканирую арбитраж...")
-    settings = load_settings()
-    results = await scan(settings)
+
+async def scan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    await update.message.reply_text("Scanning...")
+
+    results = await scan()
+
     if not results:
-        await update.message.reply_text("Возможности арбитража не найдены")
+        await update.message.reply_text("No arbitrage found")
         return
 
-    text = "TOP-5 арбитраж:\n"
+    message = ""
+
     for r in results:
-        text += f"""
+
+        message += f"""
 {r['symbol']}
-BUY: {r['buy']}
-SELL: {r['sell']}
-Network: {r['network']}
-Spread: {r['spread']}%
-Trade Amount: {settings['trade_amount_usdt']} USDT
-Profit: {r['profit']} USDT
+BUY {r['buy_exchange']} {r['buy_price']}
+SELL {r['sell_exchange']} {r['sell_price']}
+SPREAD {r['spread']}%
+
 """
-    await update.message.reply_text(text)
 
-app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("settings", settings))
-app.add_handler(CommandHandler("setspread", setspread))
-app.add_handler(CommandHandler("setamount", setamount))
-app.add_handler(CommandHandler("setexchanges", setexchanges))
-app.add_handler(CommandHandler("scan", scan_cmd))
+    await update.message.reply_text(message)
 
-app.run_polling()
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "scan":
+
+        await query.edit_message_text("Scanning...")
+
+        results = await scan()
+
+        if not results:
+            await query.message.reply_text("No arbitrage")
+            return
+
+        msg = ""
+
+        for r in results:
+
+            msg += f"""
+{r['symbol']}
+BUY {r['buy_exchange']} {r['buy_price']}
+SELL {r['sell_exchange']} {r['sell_price']}
+SPREAD {r['spread']}%
+
+"""
+
+        await query.message.reply_text(msg)
+
+
+def main():
+
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("settings", settings))
+    app.add_handler(CommandHandler("scan", scan_command))
+    app.add_handler(CommandHandler("setspread", setspread))
+    app.add_handler(CommandHandler("setamount", setamount))
+
+    app.add_handler(CallbackQueryHandler(button))
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
