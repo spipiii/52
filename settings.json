@@ -1,5 +1,6 @@
 {
-  "exchanges": ["binance","bybit","okx","kucoin"],
   "min_spread": 1.0,
-  "trade_amount_usdt": 1000
+  "trade_amount_usdt": 1000,
+  "exchanges": ["binance", "bybit", "okx", "kucoin"],
+  "autoscan_interval": 0
 }
