@@ -1,21 +1,15 @@
-async def get_transfer_info(exchange, coin):
-    try:
-        currencies = await exchange.fetch_currencies()
-    except:
-        return None
+import json
+import os
 
-    if coin not in currencies:
-        return None
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 
-    data = currencies[coin]
-    networks = []
 
-    if "networks" in data:
-        for n in data["networks"]:
-            net = data["networks"][n]
-            if net.get("withdraw") and net.get("deposit"):
-                networks.append({
-                    "network": n,
-                    "fee": net.get("fee",0)
-                })
-    return networks
+def load_settings():
+    with open(SETTINGS_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
