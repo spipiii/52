@@ -1,21 +1,47 @@
-def calculate_arbitrage_profit(
-    buy_price,
-    sell_price,
-    withdraw_fee_coin,
-    trade_amount_usdt,
-    trade_fee=0.001
-):
-    # покупка монеты
-    coin_amount = trade_amount_usdt / buy_price
-    coin_amount = coin_amount * (1 - trade_fee)
-    coin_amount = coin_amount - withdraw_fee_coin
+def find_arbitrage(tickers, min_spread):
 
-    if coin_amount <= 0:
-        return -999
+    opportunities = []
 
-    # продажа монеты
-    usdt_after_sell = coin_amount * sell_price
-    usdt_after_sell = usdt_after_sell * (1 - trade_fee)
+    exchanges = list(tickers.keys())
 
-    profit = usdt_after_sell - trade_amount_usdt
-    return round(profit,2)
+    for i in range(len(exchanges)):
+        for j in range(len(exchanges)):
+
+            if i == j:
+                continue
+
+            ex1 = exchanges[i]
+            ex2 = exchanges[j]
+
+            for symbol, ticker1 in tickers[ex1].items():
+
+                if "/USDT" not in symbol:
+                    continue
+
+                if symbol not in tickers[ex2]:
+                    continue
+
+                ticker2 = tickers[ex2][symbol]
+
+                ask = ticker1["ask"]
+                bid = ticker2["bid"]
+
+                if not ask or not bid:
+                    continue
+
+                spread = (bid - ask) / ask * 100
+
+                if spread >= min_spread:
+
+                    opportunities.append({
+                        "symbol": symbol,
+                        "buy_exchange": ex1,
+                        "sell_exchange": ex2,
+                        "buy_price": ask,
+                        "sell_price": bid,
+                        "spread": round(spread, 2)
+                    })
+
+    opportunities.sort(key=lambda x: x["spread"], reverse=True)
+
+    return opportunities[:10]
