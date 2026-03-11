@@ -1,0 +1,9 @@
+arb_bot/
+│
+├ bot.py            # Telegram интерфейс
+├ scanner.py        # асинхронный сканер арбитража
+├ exchanges.py      # подключение бирж
+├ arbitrage.py      # расчёт прибыли
+├ utils.py          # проверка сети и комиссии
+├ settings.json     # настройки
+└ cache.py          # кеширование API

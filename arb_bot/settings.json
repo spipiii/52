@@ -1,0 +1,5 @@
+{
+  "exchanges": ["binance","bybit","okx","kucoin"],
+  "min_spread": 1.0,
+  "trade_amount_usdt": 1000
+}
