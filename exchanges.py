@@ -1,18 +1,23 @@
 import ccxt.async_support as ccxt
 
-EXCHANGE_CLASSES = {
+SUPPORTED_EXCHANGES = {
     "binance": ccxt.binance,
     "bybit": ccxt.bybit,
     "okx": ccxt.okx,
     "kucoin": ccxt.kucoin,
     "mexc": ccxt.mexc,
-    "gate": ccxt.gate
+    "gate": ccxt.gate,
+    "bitget": ccxt.bitget,
+    "bingx": ccxt.bingx
 }
 
-async def load_exchange(name):
-    exchange = EXCHANGE_CLASSES[name]({
-        "enableRateLimit": True,
-        "timeout": 30000
-    })
-    await exchange.load_markets()
-    return exchange
+
+async def create_exchanges(exchange_names):
+
+    exchanges = {}
+
+    for name in exchange_names:
+        if name in SUPPORTED_EXCHANGES:
+            exchanges[name] = SUPPORTED_EXCHANGES[name]()
+
+    return exchanges
