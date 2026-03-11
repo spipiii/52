@@ -1,13 +1,14 @@
-import time
+network_cache = {}
 
-CACHE = {}
 
-def get_cache(key):
-    if key in CACHE:
-        data, ts = CACHE[key]
-        if time.time() - ts < 10:
-            return data
-    return None
+async def get_networks(exchange):
 
-def set_cache(key, value):
-    CACHE[key] = (value, time.time())
+    if exchange.id in network_cache:
+        return network_cache[exchange.id]
+
+    try:
+        currencies = await exchange.fetch_currencies()
+        network_cache[exchange.id] = currencies
+        return currencies
+    except:
+        return {}
